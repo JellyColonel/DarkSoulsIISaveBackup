@@ -22,7 +22,7 @@ type Config struct {
 		BackupLocation string `ini:"backup_location"`
 	} `ini:"paths"`
 	Timers struct {
-		BackupIntervalSeconds int `ini:"backup_interval_in_seconds"`
+		BackupInterval int `ini:"backup_interval_minutes"`
 	} `ini:"timers"`
 }
 
@@ -36,8 +36,7 @@ func checkErr(err error) {
 
 func main() {
 
-	log.SetPrefix(time.Now().UTC().Format(HHMMSS24h) + ": ")
-	log.SetFlags(log.Lmsgprefix)
+	log.SetFlags(log.Ltime)
 
 	// Read .ini
 	inidata, err := ini.Load("settings.ini")
@@ -49,9 +48,6 @@ func main() {
 	err = inidata.MapTo(&config)
 	checkErr(err)
 
-	log.Println("Save Location: " + config.Paths.SaveLocation)
-	log.Println("Backup Location: " + config.Paths.BackupLocation)
-
 	// Read directory
 	files, err := os.ReadDir(config.Paths.SaveLocation)
 	checkErr(err)
@@ -59,29 +55,37 @@ func main() {
 	var newestFile fs.DirEntry
 	var newestTime int64 = 0
 
-	// Find last modified file
-	for _, file := range files {
-		fileInfo, err := file.Info()
-		checkErr(err)
-		log.Println(fileInfo.Name(), fileInfo.ModTime().Unix())
+	for {
+		// Find last modified file
+		for _, file := range files {
+			fileInfo, err := file.Info()
+			checkErr(err)
 
-		currTime := fileInfo.ModTime().Unix()
-		if currTime > newestTime {
-			newestTime = currTime
-			newestFile = file
+			currTime := fileInfo.ModTime().Unix()
+			if currTime > newestTime {
+				newestTime = currTime
+				newestFile = file
+			}
 		}
-	}
 
-	log.Println("Newest file name is: " + newestFile.Name())
+		timestamp := strconv.FormatInt(time.Now().UTC().UTC().UnixNano(), 10)
+		var sourcePath = config.Paths.SaveLocation + "\\" + newestFile.Name()
+		var destinationPath = config.Paths.BackupLocation + "\\" + timestamp + "_" + newestFile.Name()
+		createBackup(sourcePath, destinationPath)
+		log.Println("Backup created")
+		time.Sleep(time.Minute * time.Duration(config.Timers.BackupInterval))
+	}
+}
+
+func createBackup(sourcePath string, destinationPath string) {
 
 	// Read source file
-	in, err := os.Open(config.Paths.SaveLocation + "\\" + newestFile.Name())
+	in, err := os.Open(sourcePath)
 	checkErr((err))
 	defer in.Close()
 
 	// Setup copy file
-	timestamp := strconv.FormatInt(time.Now().UTC().UTC().UnixNano(), 10)
-	out, err := os.Create(config.Paths.BackupLocation + "\\" + timestamp + "_" + newestFile.Name())
+	out, err := os.Create(destinationPath)
 	checkErr(err)
 	defer func() {
 		cerr := out.Close()
