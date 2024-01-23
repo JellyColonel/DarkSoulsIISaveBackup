@@ -3,8 +3,14 @@ package main
 import (
 	"log"
 	"os"
+	"time"
 
 	"gopkg.in/ini.v1"
+)
+
+const (
+	// 24h hh:mm:ss: 14:23:20
+	HHMMSS24h = "15:04:05"
 )
 
 type Config struct {
@@ -19,12 +25,12 @@ type Config struct {
 
 func main() {
 	// Setup logger
-	log.SetFlags(log.Ltime)
+	logger := log.New(os.Stdout, time.Now().UTC().Format(HHMMSS24h)+": ", log.Lmsgprefix)
 
 	// Read .ini
 	inidata, err := ini.Load("settings.ini")
 	if err != nil {
-		log.Printf("Fail to read file: %v", err)
+		logger.Printf("Fail to read file: %v", err)
 		os.Exit(1)
 	}
 
@@ -33,10 +39,10 @@ func main() {
 	// Map .ini
 	err = inidata.MapTo(&config)
 	if err != nil {
-		log.Printf("Fail to map file %v", err)
+		logger.Printf("Fail to map file %v", err)
 		os.Exit(1)
 	}
 
-	log.Println("Save Location: " + config.Paths.SaveLocation)
-	log.Println("Backup Location: " + config.Paths.BackupLocation)
+	logger.Println("Save Location: " + config.Paths.SaveLocation)
+	logger.Println("Backup Location: " + config.Paths.BackupLocation)
 }
