@@ -48,6 +48,10 @@ func main() {
 	err = inidata.MapTo(&config)
 	checkErr(err)
 
+	// Create destination path if not exist
+	err = os.MkdirAll(config.Paths.BackupLocation, os.ModeDevice)
+	checkErr(err)
+
 	var newestFile fs.DirEntry
 	var newestTime int64 = 0
 
