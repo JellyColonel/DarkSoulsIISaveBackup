@@ -48,14 +48,15 @@ func main() {
 	err = inidata.MapTo(&config)
 	checkErr(err)
 
-	// Read directory
-	files, err := os.ReadDir(config.Paths.SaveLocation)
-	checkErr(err)
-
 	var newestFile fs.DirEntry
 	var newestTime int64 = 0
 
 	for {
+
+		// Read directory
+		files, err := os.ReadDir(config.Paths.SaveLocation)
+		checkErr(err)
+
 		// Find last modified file
 		for _, file := range files {
 			fileInfo, err := file.Info()
